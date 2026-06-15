@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase-server";
 import MessagesClient from "./MessagesClient";
+
+export const metadata: Metadata = { title: "Messages" };
 
 export default async function MessagesPage({ searchParams }: { searchParams: { to?: string } }) {
   const supabase = createClient();

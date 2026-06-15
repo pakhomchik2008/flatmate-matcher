@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
@@ -14,6 +14,8 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => { document.title = "Create account — Flatmate Matcher"; }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,8 +45,11 @@ export default function SignUpPage() {
         <p className="text-sm text-slate-600">Use your university email (.ac.uk or .edu) for verification.</p>
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
-            <label className="label">Email</label>
+            <label className="label" htmlFor="email">Email</label>
             <input
+              id="email"
+              name="email"
+              autoComplete="email"
               required
               type="email"
               className="input"
@@ -59,8 +64,18 @@ export default function SignUpPage() {
             {warning && <p className="text-xs text-warn mt-1">{warning}</p>}
           </div>
           <div>
-            <label className="label">Password</label>
-            <input required type="password" minLength={6} className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <label className="label" htmlFor="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              autoComplete="new-password"
+              required
+              type="password"
+              minLength={6}
+              className="input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
           {error && <p className="text-sm text-bad">{error}</p>}
           {info && <p className="text-sm text-good">{info}</p>}

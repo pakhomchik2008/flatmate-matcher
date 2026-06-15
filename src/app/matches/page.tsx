@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase-server";
 import MatchesClient from "./MatchesClient";
+
+export const metadata: Metadata = { title: "Your matches" };
 
 export default async function MatchesPage() {
   const supabase = createClient();

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" fill="#ffffff">
+    <text x="80" y="180" font-size="46" font-weight="600" opacity="0.85">flatmate.</text>
+    <text x="80" y="320" font-size="76" font-weight="800">Find a flatmate</text>
+    <text x="80" y="410" font-size="76" font-weight="800">you'll actually like.</text>
+    <text x="80" y="500" font-size="32" font-weight="400" opacity="0.9">60-second compatibility quiz · matched at your university</text>
+  </g>
+  <circle cx="1020" cy="320" r="170" fill="#ffffff" opacity="0.08"/>
+  <circle cx="1020" cy="320" r="110" fill="#ffffff" opacity="0.12"/>
+  <text x="1020" y="340" font-family="ui-sans-serif, system-ui, sans-serif" font-size="80" font-weight="800" text-anchor="middle" fill="#ffffff">92%</text>
+</svg>

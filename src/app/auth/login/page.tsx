@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
@@ -11,6 +11,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => { document.title = "Sign in — Flatmate Matcher"; }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,12 +40,33 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold">Welcome back</h1>
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
-            <label className="label">Email</label>
-            <input required type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label className="label" htmlFor="email">Email</label>
+            <input
+              id="email"
+              name="email"
+              autoComplete="email"
+              required
+              type="email"
+              className="input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div>
-            <label className="label">Password</label>
-            <input required type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <div className="flex items-baseline justify-between">
+              <label className="label" htmlFor="password">Password</label>
+              <Link href="/auth/forgot-password" className="text-xs text-brand hover:underline">Forgot your password?</Link>
+            </div>
+            <input
+              id="password"
+              name="password"
+              autoComplete="current-password"
+              required
+              type="password"
+              className="input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
           {error && <p className="text-sm text-bad">{error}</p>}
           <button disabled={loading} className="btn-primary w-full">{loading ? "Signing in…" : "Sign in"}</button>
