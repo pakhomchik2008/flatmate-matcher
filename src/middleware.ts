@@ -32,7 +32,8 @@ export async function middleware(request: NextRequest) {
   const isAuthPage = path.startsWith("/auth");
   const isDemo = path.startsWith("/demo");
   const isAbout = path.startsWith("/about");
-  const isPublic = path === "/" || isAuthPage || isDemo || isAbout;
+  const isApi = path.startsWith("/api");
+  const isPublic = path === "/" || isAuthPage || isDemo || isAbout || isApi;
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
