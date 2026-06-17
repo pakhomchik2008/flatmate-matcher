@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase-server";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
+import FeedbackWidget from "@/components/FeedbackWidget";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flatmate-matcher.vercel.app";
 
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {user && <NavBar unreadCount={unreadCount} />}
         <main className="flex-1 pb-24 md:pb-0">{children}</main>
         <Footer />
+        {user && <FeedbackWidget userId={user.id} />}
       </body>
     </html>
   );

@@ -16,6 +16,7 @@ type ProfileForm = {
   city: string;
   bio: string;
   avatarFile: File | null;
+  googleAvatarUrl: string | null;
   looking_for: LookingFor;
   move_in_date: string;
   budget_min: string;
@@ -24,6 +25,7 @@ type ProfileForm = {
 
 const EMPTY: ProfileForm = {
   name: "", age: "", university: "", city: "", bio: "", avatarFile: null,
+  googleAvatarUrl: null,
   looking_for: "both", move_in_date: "", budget_min: "", budget_max: "",
 };
 
@@ -34,16 +36,41 @@ const DEFAULT_ANSWERS: AnswersForm = {
   temperature_preference: 3, work_schedule: 3,
 };
 
+/* ── Skeleton loader ─────────────────────────────────────────── */
+function OnboardingSkeleton() {
+  return (
+    <div className="max-w-xl mx-auto px-6 py-10 animate-fade-in">
+      {/* progress bar skeleton */}
+      <div className="flex gap-2 mb-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-2 flex-1 skeleton" />
+        ))}
+      </div>
+      <div className="card p-6 space-y-5">
+        <div className="skeleton h-6 w-28" />
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="space-y-1.5">
+            <div className="skeleton h-4 w-24" />
+            <div className="skeleton h-10 w-full" />
+          </div>
+        ))}
+        <div className="skeleton h-10 w-full mt-2 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [step, setStep] = useState(1);
+  const [userId, setUserId]     = useState<string | null>(null);
+  const [loading, setLoading]   = useState(true);
+  const [step, setStep]         = useState(1);
   const [quizIndex, setQuizIndex] = useState(0);
-  const [form, setForm] = useState<ProfileForm>(EMPTY);
-  const [answers, setAnswers] = useState<AnswersForm>(DEFAULT_ANSWERS);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [form, setForm]         = useState<ProfileForm>(EMPTY);
+  const [answers, setAnswers]   = useState<AnswersForm>(DEFAULT_ANSWERS);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
   useEffect(() => { document.title = "Onboarding — Flatmate Matcher"; }, []);
 
@@ -52,21 +79,38 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/auth/login"); return; }
       setUserId(user.id);
+
+      /* Google / OAuth metadata — pre-fill name + avatar */
+      const meta = user.user_metadata ?? {};
+      const socialName: string = meta.full_name ?? meta.name ?? "";
+      const socialAvatar: string | null = meta.avatar_url ?? meta.picture ?? null;
+
       const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+
       if (profile) {
         setForm((f) => ({
           ...f,
-          name: profile.name ?? "",
-          age: profile.age?.toString() ?? "",
-          university: profile.university ?? "",
-          city: profile.city ?? "",
-          bio: profile.bio ?? "",
-          looking_for: (profile.looking_for as LookingFor) ?? "both",
+          name:         profile.name ?? socialName,
+          age:          profile.age?.toString() ?? "",
+          university:   profile.university ?? "",
+          city:         profile.city ?? "",
+          bio:          profile.bio ?? "",
+          looking_for:  (profile.looking_for as LookingFor) ?? "both",
           move_in_date: profile.move_in_date ?? "",
-          budget_min: profile.budget_min?.toString() ?? "",
-          budget_max: profile.budget_max?.toString() ?? "",
+          budget_min:   profile.budget_min?.toString() ?? "",
+          budget_max:   profile.budget_max?.toString() ?? "",
+          googleAvatarUrl: profile.avatar_url ?? socialAvatar,
+        }));
+      } else {
+        /* Brand-new Google user — seed what we know */
+        setForm((f) => ({
+          ...f,
+          name: socialName,
+          googleAvatarUrl: socialAvatar,
         }));
       }
+
+      setLoading(false);
     })();
   }, [router, supabase]);
 
@@ -80,7 +124,10 @@ export default function OnboardingPage() {
       setError("Name, university, and city are required."); return;
     }
     setSaving(true); setError(null);
-    let avatar_url: string | null = null;
+
+    let avatar_url: string | null = form.googleAvatarUrl ?? null;
+
+    /* User picked a file → upload it, overriding the Google avatar */
     if (form.avatarFile) {
       const ext = form.avatarFile.name.split(".").pop() ?? "jpg";
       const path = `${userId}/avatar-${Date.now()}.${ext}`;
@@ -89,13 +136,14 @@ export default function OnboardingPage() {
       const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
       avatar_url = pub.publicUrl;
     }
+
     const { error: upErr } = await supabase.from("profiles").upsert({
-      id: userId,
-      name: form.name.trim(),
-      age: form.age ? parseInt(form.age, 10) : null,
+      id:         userId,
+      name:       form.name.trim(),
+      age:        form.age ? parseInt(form.age, 10) : null,
       university: form.university.trim(),
-      city: form.city.trim(),
-      bio: form.bio.trim() || null,
+      city:       form.city.trim(),
+      bio:        form.bio.trim() || null,
       ...(avatar_url ? { avatar_url } : {}),
       looking_for: form.looking_for,
     });
@@ -108,10 +156,10 @@ export default function OnboardingPage() {
     if (!userId) return;
     setSaving(true); setError(null);
     const { error } = await supabase.from("profiles").update({
-      looking_for: form.looking_for,
+      looking_for:  form.looking_for,
       move_in_date: form.move_in_date || null,
-      budget_min: form.budget_min ? parseInt(form.budget_min, 10) : null,
-      budget_max: form.budget_max ? parseInt(form.budget_max, 10) : null,
+      budget_min:   form.budget_min ? parseInt(form.budget_min, 10) : null,
+      budget_max:   form.budget_max ? parseInt(form.budget_max, 10) : null,
     }).eq("id", userId);
     setSaving(false);
     if (error) return setError(error.message);
@@ -132,16 +180,42 @@ export default function OnboardingPage() {
 
   const currentQ = QUESTIONS[quizIndex];
 
+  /* ── Show skeleton while fetching ───────────────────────────── */
+  if (loading) return <OnboardingSkeleton />;
+
   return (
-    <div className="max-w-xl mx-auto px-6 py-10">
+    <div className="max-w-xl mx-auto px-6 py-10 animate-fade-in">
       <StepProgress current={step} total={3} />
       <div className="card mt-6 p-6 space-y-5">
         {step === 1 && (
           <>
             <h2 className="text-xl font-bold">About you</h2>
+
+            {/* Google avatar preview */}
+            {form.googleAvatarUrl && !form.avatarFile && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.googleAvatarUrl} alt="Google profile picture" className="w-12 h-12 rounded-full object-cover" />
+                <div>
+                  <p className="text-sm font-medium text-slate-800">Using your Google photo</p>
+                  <p className="text-xs text-slate-500">Upload a photo below to replace it</p>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="label">Full name *</label>
-              <input className="input" value={form.name} onChange={(e) => update("name", e.target.value)} />
+              <input
+                className="input"
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                placeholder="Your display name"
+              />
+              {form.name && (
+                <p className="text-xs text-slate-400 mt-1">
+                  This is what other students will see on your profile.
+                </p>
+              )}
             </div>
             <div>
               <label className="label">Age</label>
@@ -169,11 +243,21 @@ export default function OnboardingPage() {
               <div className="text-xs text-slate-400 text-right">{form.bio.length}/200</div>
             </div>
             <div>
-              <label className="label">Profile photo</label>
+              <label className="label">Profile photo {form.googleAvatarUrl ? "(optional — you already have one)" : ""}</label>
               <input type="file" accept="image/*" onChange={(e) => update("avatarFile", e.target.files?.[0] ?? null)} className="text-sm" />
             </div>
             {error && <p className="text-sm text-bad">{error}</p>}
-            <button onClick={saveScreen1} disabled={saving} className="btn-primary w-full">{saving ? "Saving…" : "Continue"}</button>
+            <button onClick={saveScreen1} disabled={saving} className="btn-primary w-full">
+              {saving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                  </svg>
+                  Saving…
+                </span>
+              ) : "Continue"}
+            </button>
           </>
         )}
 
@@ -212,7 +296,17 @@ export default function OnboardingPage() {
             {error && <p className="text-sm text-bad">{error}</p>}
             <div className="flex gap-2">
               <button onClick={() => setStep(1)} className="btn-secondary flex-1">Back</button>
-              <button onClick={saveScreen2} disabled={saving} className="btn-primary flex-1">{saving ? "Saving…" : "Continue"}</button>
+              <button onClick={saveScreen2} disabled={saving} className="btn-primary flex-1">
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                    </svg>
+                    Saving…
+                  </span>
+                ) : "Continue"}
+              </button>
             </div>
           </>
         )}
@@ -224,7 +318,10 @@ export default function OnboardingPage() {
               <span className="text-xs text-slate-500">{quizIndex + 1} / {QUESTIONS.length}</span>
             </div>
             <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
-              <div className="h-full bg-brand" style={{ width: `${((quizIndex + 1) / QUESTIONS.length) * 100}%` }} />
+              <div
+                className="h-full bg-brand transition-all duration-300"
+                style={{ width: `${((quizIndex + 1) / QUESTIONS.length) * 100}%` }}
+              />
             </div>
             <div className="py-2">
               <p className="text-lg font-medium text-slate-900 mb-6">{currentQ.prompt}</p>
@@ -245,7 +342,7 @@ export default function OnboardingPage() {
                       key={label}
                       type="button"
                       onClick={() => setAnswers((a) => ({ ...a, [currentQ.key]: val }))}
-                      className={`py-3 rounded-lg border text-sm font-medium ${answers[currentQ.key] === val ? "bg-brand text-white border-brand" : "bg-white border-slate-200"}`}
+                      className={`py-3 rounded-lg border text-sm font-medium transition-colors ${answers[currentQ.key] === val ? "bg-brand text-white border-brand" : "bg-white border-slate-200 hover:bg-slate-50"}`}
                     >
                       {label}
                     </button>
@@ -264,7 +361,17 @@ export default function OnboardingPage() {
               {quizIndex < QUESTIONS.length - 1 ? (
                 <button onClick={() => setQuizIndex(quizIndex + 1)} className="btn-primary flex-1">Next</button>
               ) : (
-                <button onClick={finishQuiz} disabled={saving} className="btn-primary flex-1">{saving ? "Saving…" : "Finish"}</button>
+                <button onClick={finishQuiz} disabled={saving} className="btn-primary flex-1">
+                  {saving ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                      </svg>
+                      Saving…
+                    </span>
+                  ) : "Finish"}
+                </button>
               )}
             </div>
           </>
