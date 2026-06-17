@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import StepProgress from "@/components/StepProgress";
 import QuizSlider from "@/components/QuizSlider";
-import { UK_UNIVERSITIES } from "@/lib/universities";
+import UniversitySearch from "@/components/UniversitySearch";
 import { QUESTIONS } from "@/lib/quiz-questions";
-import type { LookingFor, QuizAnswers } from "@/lib/types";
+import type { LookingFor, QuizAnswers, University } from "@/lib/types";
 
 type ProfileForm = {
   name: string;
+  nickname: string;
   age: string;
   university: string;
+  university_id: string | null;
   city: string;
   bio: string;
   avatarFile: File | null;
@@ -24,8 +26,8 @@ type ProfileForm = {
 };
 
 const EMPTY: ProfileForm = {
-  name: "", age: "", university: "", city: "", bio: "", avatarFile: null,
-  googleAvatarUrl: null,
+  name: "", nickname: "", age: "", university: "", university_id: null,
+  city: "", bio: "", avatarFile: null, googleAvatarUrl: null,
   looking_for: "both", move_in_date: "", budget_min: "", budget_max: "",
 };
 
@@ -90,15 +92,17 @@ export default function OnboardingPage() {
       if (profile) {
         setForm((f) => ({
           ...f,
-          name:         profile.name ?? socialName,
-          age:          profile.age?.toString() ?? "",
-          university:   profile.university ?? "",
-          city:         profile.city ?? "",
-          bio:          profile.bio ?? "",
-          looking_for:  (profile.looking_for as LookingFor) ?? "both",
-          move_in_date: profile.move_in_date ?? "",
-          budget_min:   profile.budget_min?.toString() ?? "",
-          budget_max:   profile.budget_max?.toString() ?? "",
+          name:          profile.name ?? socialName,
+          nickname:      profile.nickname ?? "",
+          age:           profile.age?.toString() ?? "",
+          university:    profile.university ?? "",
+          university_id: profile.university_id ?? null,
+          city:          profile.city ?? "",
+          bio:           profile.bio ?? "",
+          looking_for:   (profile.looking_for as LookingFor) ?? "both",
+          move_in_date:  profile.move_in_date ?? "",
+          budget_min:    profile.budget_min?.toString() ?? "",
+          budget_max:    profile.budget_max?.toString() ?? "",
           googleAvatarUrl: profile.avatar_url ?? socialAvatar,
         }));
       } else {
@@ -138,14 +142,16 @@ export default function OnboardingPage() {
     }
 
     const { error: upErr } = await supabase.from("profiles").upsert({
-      id:         userId,
-      name:       form.name.trim(),
-      age:        form.age ? parseInt(form.age, 10) : null,
-      university: form.university.trim(),
-      city:       form.city.trim(),
-      bio:        form.bio.trim() || null,
+      id:            userId,
+      name:          form.name.trim(),
+      nickname:      form.nickname.trim() || null,
+      age:           form.age ? parseInt(form.age, 10) : null,
+      university:    form.university.trim(),
+      university_id: form.university_id,
+      city:          form.city.trim(),
+      bio:           form.bio.trim() || null,
       ...(avatar_url ? { avatar_url } : {}),
-      looking_for: form.looking_for,
+      looking_for:   form.looking_for,
     });
     setSaving(false);
     if (upErr) return setError(upErr.message);
@@ -218,17 +224,41 @@ export default function OnboardingPage() {
               )}
             </div>
             <div>
+              <label className="label">Nickname <span className="text-slate-400 font-normal">(optional)</span></label>
+              <input
+                className="input"
+                value={form.nickname}
+                onChange={(e) => update("nickname", e.target.value)}
+                placeholder="e.g. Pri, Ollie — shown instead of full name"
+                maxLength={30}
+              />
+            </div>
+            <div>
               <label className="label">Age</label>
               <input className="input" type="number" min={16} max={100} value={form.age} onChange={(e) => update("age", e.target.value)} />
             </div>
             <div>
               <label className="label">University *</label>
-              <input className="input" list="uni-list" value={form.university} onChange={(e) => update("university", e.target.value)} />
-              <datalist id="uni-list">{UK_UNIVERSITIES.map((u) => <option key={u} value={u} />)}</datalist>
+              <UniversitySearch
+                value={form.university_id}
+                displayValue={form.university}
+                required
+                onSelect={(u: University) => {
+                  update("university_id", u.id);
+                  update("university", u.name);
+                  if (!form.city) update("city", u.city);
+                }}
+              />
+              <p className="text-xs text-slate-400 mt-1">Type at least 2 letters — e.g. "war", "ucl", "imper"</p>
             </div>
             <div>
               <label className="label">City *</label>
-              <input className="input" value={form.city} onChange={(e) => update("city", e.target.value)} />
+              <input
+                className="input"
+                value={form.city}
+                onChange={(e) => update("city", e.target.value)}
+                placeholder="Auto-filled from university, or type your city"
+              />
             </div>
             <div>
               <label className="label">Short bio</label>

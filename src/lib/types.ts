@@ -1,10 +1,26 @@
 export type LookingFor = "room" | "flatmate" | "both";
 
+export interface University {
+  id: string;
+  name: string;
+  abbreviation: string | null;
+  city: string;
+  country: string;
+  qs_rank: number | null;
+}
+
+/** Returns nickname if set, otherwise the first word of name. */
+export function displayName(profile: { name: string; nickname?: string | null }): string {
+  return profile.nickname?.trim() || profile.name;
+}
+
 export interface Profile {
   id: string;
   name: string;
+  nickname: string | null;
   age: number | null;
   university: string;
+  university_id: string | null;
   city: string;
   bio: string | null;
   avatar_url: string | null;

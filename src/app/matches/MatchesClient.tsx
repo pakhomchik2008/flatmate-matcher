@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import ProfileCard from "@/components/ProfileCard";
-import { calculateCompatibility } from "@/lib/matching";
+import { calculateCompatibility, universityBonus } from "@/lib/matching";
 import type { Profile, QuizAnswers, LookingFor } from "@/lib/types";
 
 type Other = { profile: Profile; answers: QuizAnswers };
@@ -24,7 +24,9 @@ export default function MatchesClient({ me, myAnswers, others }: Props) {
   const scored = useMemo(() => {
     return others
       .map((o) => {
-        const score = calculateCompatibility(myAnswers, o.answers);
+        const quizScore = calculateCompatibility(myAnswers, o.answers);
+        const bonus     = universityBonus(me, o.profile);
+        const score     = Math.min(100, quizScore + bonus);
         const myMax = me.budget_max ?? Infinity;
         const otherMin = o.profile.budget_min ?? 0;
         const budgetMisalign = myMax < otherMin;

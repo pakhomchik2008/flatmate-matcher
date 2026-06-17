@@ -2,6 +2,7 @@ import Link from "next/link";
 import Avatar from "./Avatar";
 import CompatibilityBadge from "./CompatibilityBadge";
 import type { Profile } from "@/lib/types";
+import { displayName } from "@/lib/types";
 
 export default function ProfileCard({
   profile,
@@ -17,7 +18,7 @@ export default function ProfileCard({
         <div className="flex items-center gap-3">
           <Avatar url={profile.avatar_url} name={profile.name} size={56} />
           <div>
-            <div className="font-semibold text-slate-900">{profile.name}{profile.age ? `, ${profile.age}` : ""}</div>
+            <div className="font-semibold text-slate-900">{displayName(profile)}{profile.age ? `, ${profile.age}` : ""}</div>
             <div className="text-xs text-slate-500">{profile.university}</div>
             <div className="text-xs text-slate-500">{profile.city}</div>
           </div>

@@ -65,3 +65,20 @@ export function compatibilityColor(score: number): "good" | "warn" | "bad" {
   if (score >= 60) return "warn";
   return "bad";
 }
+
+/**
+ * Bonus points for university proximity.
+ * Same university_id → +5 pts. Same city (different uni) → +2 pts.
+ * Applied on top of quiz score and capped at 100 by the caller.
+ */
+export function universityBonus(
+  a: { university_id?: string | null; city?: string | null },
+  b: { university_id?: string | null; city?: string | null },
+): number {
+  if (a.university_id && b.university_id && a.university_id === b.university_id) return 5;
+  if (
+    a.city && b.city &&
+    a.city.trim().toLowerCase() === b.city.trim().toLowerCase()
+  ) return 2;
+  return 0;
+}

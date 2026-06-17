@@ -3,7 +3,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
 import Avatar from "@/components/Avatar";
 import CompatibilityBadge from "@/components/CompatibilityBadge";
-import { calculateCompatibility, computeTraitScores, TRAIT_LABELS, WEIGHTS } from "@/lib/matching";
+import { calculateCompatibility, computeTraitScores, TRAIT_LABELS, WEIGHTS, universityBonus } from "@/lib/matching";
+import { displayName } from "@/lib/types";
 
 export default async function ProfileViewPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -22,7 +23,10 @@ export default async function ProfileViewPage({ params }: { params: { id: string
   const { data: myAnswers } = await supabase.from("quiz_answers").select("*").eq("user_id", user.id).maybeSingle();
 
   const otherAnswers = (profile as any).quiz_answers;
-  const score = myAnswers && otherAnswers ? calculateCompatibility(myAnswers, otherAnswers) : null;
+  const quizScore = myAnswers && otherAnswers ? calculateCompatibility(myAnswers, otherAnswers) : null;
+  const myProfile = myAnswers ? await supabase.from("profiles").select("university_id,city").eq("id", user.id).maybeSingle().then(r => r.data) : null;
+  const bonus = (quizScore !== null && myProfile) ? universityBonus(myProfile, profile) : 0;
+  const score = quizScore !== null ? Math.min(100, quizScore + bonus) : null;
   const breakdown = myAnswers && otherAnswers ? computeTraitScores(myAnswers, otherAnswers) : null;
 
   return (
@@ -30,7 +34,7 @@ export default async function ProfileViewPage({ params }: { params: { id: string
       <div className="card p-6 flex flex-col md:flex-row gap-6 items-start">
         <Avatar url={profile.avatar_url} name={profile.name} size={120} />
         <div className="flex-1 space-y-2">
-          <h1 className="text-2xl font-bold">{profile.name}{profile.age ? `, ${profile.age}` : ""}</h1>
+          <h1 className="text-2xl font-bold">{displayName(profile)}{profile.age ? `, ${profile.age}` : ""}</h1>
           <div className="text-slate-600">{profile.university} · {profile.city}</div>
           {profile.bio && <p className="text-slate-700">{profile.bio}</p>}
           <div className="flex flex-wrap gap-2 text-xs pt-2">
