@@ -44,7 +44,7 @@ export default function DemoFlow() {
           <span className="inline-block text-xs font-medium px-3 py-1 rounded-full bg-brand/10 text-brand">Demo · no sign-up</span>
           <h1 className="text-2xl md:text-3xl font-bold">Try the matching engine</h1>
           <p className="text-slate-600">
-            Answer 10 quick questions about how you live. We'll rank a sample of students at the University of Warwick by how well their habits match yours.
+            Answer 10 quick questions about how you live. We'll rank {DEMO_PEOPLE.length} sample students from universities across the UK by how well their habits match yours.
           </p>
           <p className="text-xs text-slate-500">Nothing is saved or sent anywhere. Refresh to reset.</p>
           <button onClick={() => setStage("quiz")} className="btn-primary w-full py-3">Start the quiz</button>
@@ -101,12 +101,18 @@ export default function DemoFlow() {
 
   // results
   const me = { ...answers, user_id: "you" } as QuizAnswers;
+
+  const QUESTION_LABELS: Record<string, string> = {};
+  for (const q of QUESTIONS) {
+    QUESTION_LABELS[q.key] = q.prompt;
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Your demo matches</h1>
-          <p className="text-slate-600 text-sm">Five sample students from University of Warwick, ranked against your answers.</p>
+          <p className="text-slate-600 text-sm">{DEMO_PEOPLE.length} sample students from UK universities, ranked against your answers.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => { setStage("quiz"); setQIndex(0); }} className="btn-secondary">Retake quiz</button>
@@ -120,7 +126,7 @@ export default function DemoFlow() {
             <button
               key={p.id}
               onClick={() => setSelected(p.id)}
-              className="card p-4 text-left flex flex-col gap-3 hover:shadow-md hover:border-brand/30 transition"
+              className="card p-4 text-left flex flex-col gap-3 hover:shadow-md hover:border-brand/30 transition cursor-pointer"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -134,7 +140,10 @@ export default function DemoFlow() {
                 <CompatibilityBadge score={p.score} />
               </div>
               <p className="text-sm text-slate-600 line-clamp-2">{p.bio}</p>
-              <span className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700 w-fit">{p.budget}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700">{p.budget}</span>
+                <span className="text-xs text-brand ml-auto">View profile →</span>
+              </div>
             </button>
           ))}
         </div>
@@ -143,21 +152,49 @@ export default function DemoFlow() {
           <button onClick={() => setSelected(null)} className="text-sm text-slate-500 hover:text-slate-900">← Back to matches</button>
           <div className="card p-6 flex flex-col md:flex-row gap-6 items-start">
             <Avatar url={null} name={selectedPerson.name} size={120} />
-            <div className="flex-1 space-y-2">
-              <h2 className="text-2xl font-bold">{selectedPerson.name}, {selectedPerson.age}</h2>
-              <div className="text-slate-600">{selectedPerson.university} · {selectedPerson.city}</div>
+            <div className="flex-1 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold">{selectedPerson.name}, {selectedPerson.age}</h2>
+                  <div className="text-slate-600">{selectedPerson.university} · {selectedPerson.city}</div>
+                </div>
+                <CompatibilityBadge score={selectedPerson.score} size="lg" />
+              </div>
               <p className="text-slate-700">{selectedPerson.bio}</p>
-              <div className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700 w-fit">{selectedPerson.budget}</div>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700">Budget: {selectedPerson.budget}</span>
+                <span className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700">Move-in: {selectedPerson.move_in_date}</span>
+              </div>
             </div>
-            <CompatibilityBadge score={selectedPerson.score} size="lg" />
           </div>
+
+          {/* Quiz answers comparison */}
+          <div className="card p-6 space-y-4">
+            <h3 className="font-semibold">Quiz answers comparison</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {QUESTIONS.map((q) => {
+                const myVal = (me as unknown as Record<string, number | boolean>)[q.key];
+                const theirVal = (selectedPerson.answers as unknown as Record<string, number | boolean>)[q.key];
+                const fmt = (v: number | boolean) => typeof v === "boolean" ? (v ? "Yes" : "No") : String(v);
+                return (
+                  <div key={q.key} className="flex items-center justify-between text-sm p-2 rounded-lg bg-slate-50">
+                    <span className="text-slate-600 font-medium">{q.prompt}</span>
+                    <div className="flex gap-3 text-xs shrink-0 ml-2">
+                      <span className="text-brand font-medium">You: {fmt(myVal)}</span>
+                      <span className="text-slate-500">Them: {fmt(theirVal)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Trait breakdown */}
           <div className="card p-6 space-y-4">
             <h3 className="font-semibold">Compatibility breakdown</h3>
             {(Object.keys(WEIGHTS) as (keyof typeof WEIGHTS)[]).map((k) => {
               const scores = computeTraitScores(me, { ...selectedPerson.answers, user_id: selectedPerson.id } as QuizAnswers);
               const pct = Math.round(scores[k] * 100);
-              const yours = (me as any)[k];
-              const theirs = (selectedPerson.answers as any)[k];
               return (
                 <div key={k}>
                   <div className="flex justify-between text-sm">
@@ -165,14 +202,18 @@ export default function DemoFlow() {
                     <span className="text-slate-500">{pct}%</span>
                   </div>
                   <div className="h-2 bg-slate-200 rounded-full overflow-hidden mt-1">
-                    <div className="h-full bg-brand" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    You: {typeof yours === "boolean" ? (yours ? "Yes" : "No") : yours} · Them: {typeof theirs === "boolean" ? (theirs ? "Yes" : "No") : theirs}
+                    <div
+                      className={`h-full ${pct >= 80 ? "bg-green-500" : pct >= 50 ? "bg-yellow-500" : "bg-red-400"}`}
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
                 </div>
               );
             })}
+          </div>
+
+          <div className="text-center pt-2">
+            <Link href="/auth/signup" className="btn-primary inline-block">Sign up to message {selectedPerson.name.split(" ")[0]}</Link>
           </div>
         </div>
       )}

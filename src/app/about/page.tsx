@@ -21,9 +21,10 @@ export default function AboutPage() {
       <h2 className="text-xl font-semibold mt-8">Built with</h2>
       <ul className="text-slate-600 list-disc pl-5 mt-2 space-y-1">
         <li>Next.js 14 (App Router) + TypeScript</li>
-        <li>Supabase — Postgres, Auth, Realtime, Storage</li>
+        <li>Supabase — Postgres, Auth (email + Google OAuth), Realtime, Storage</li>
         <li>Tailwind CSS</li>
         <li>Deployed on Vercel</li>
+        <li>Tested with Node's built-in test runner — 6 unit + property tests covering identity, opposites, symmetry, range, weight dominance, and partial overlap</li>
       </ul>
       <p className="text-slate-600 mt-8">
         <Link href="/demo" className="text-brand font-medium">Try the demo →</Link>

@@ -56,11 +56,12 @@ export default async function Home() {
 
       {/* Trust / numbers strip */}
       <section className="px-6 py-12">
-        <div className="max-w-5xl mx-auto grid grid-cols-3 gap-4 text-center">
+        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
             { n: "32", label: "UK universities" },
             { n: "10", label: "lifestyle dimensions" },
             { n: "60s", label: "to your first matches" },
+            { n: "148", label: "matched this week" },
           ].map((s) => (
             <div key={s.label}>
               <div className="text-3xl md:text-4xl font-bold text-slate-900">{s.n}</div>
