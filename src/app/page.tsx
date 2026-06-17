@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import HomePreview from "@/components/HomePreview";
+import FeedbackSection from "@/components/FeedbackSection";
 
 export default async function Home() {
   const supabase = createClient();
@@ -70,6 +71,9 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      {/* Student feedback */}
+      <FeedbackSection />
 
       {/* CTA */}
       <section className="px-6 pb-24 text-center">
